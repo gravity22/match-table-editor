@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm run test *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx supabase status)",
+      "Bash(npx supabase start)",
+      "Bash(npx supabase stop)",
+      "Bash(npx supabase db push)",
+      "Bash(npx supabase db reset)",
+      "Bash(npx supabase gen types typescript *)",
+      "Bash(npx supabase db execute *)",
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git --yes)",
+      "Bash(npm install @supabase/ssr @supabase/supabase-js)",
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx shadcn@latest add button input label card tabs dialog table badge --yes)",
+      "Bash(npx supabase init)",
+      "Bash(npx supabase status -o env)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c \"SELECT * FROM user_roles;\")",
+      "Bash(docker exec supabase_db_match-table-editor psql -U postgres -c \"\\\\d auth.users\")",
+      "Bash(npx supabase migration up)"
+    ],
+    "deny": [
+      "Bash(npx supabase db execute * --remote)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/Users/masashi/Desktop/match-table-editor/src/app/tournaments/[id]"
+    ]
+  }
+}

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>対戦表エディター</title>
+  <style>
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+      background: #e4e8ee;
+      color: #1a1a1a;
+      font-size: 14px;
+    }
+
+    /* ===== App Layout ===== */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ===== Sidebar ===== */
+    #sidebar {
+      width: 270px;
+      min-width: 270px;
+      background: #1a2535;
+      color: #d4e2f0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #sidebar-header {
+      padding: 14px 16px;
+      background: #111c2b;
+      font-size: 14px;
+      font-weight: bold;
+      color: #6bb4e8;
+      border-bottom: 1px solid #253447;
+      flex-shrink: 0;
+    }
+    #sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+    }
+    #sidebar-body::-webkit-scrollbar { width: 5px; }
+    #sidebar-body::-webkit-scrollbar-track { background: #1a2535; }
+    #sidebar-body::-webkit-scrollbar-thumb { background: #2d4460; border-radius: 3px; }
+
+    .s-section { margin-bottom: 18px; }
+    .s-section h3 {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #5a80a8;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #253447;
+      margin-bottom: 10px;
+    }
+    .s-row { margin-bottom: 8px; }
+    .s-row label { display: block; font-size: 11px; color: #7aa0c0; margin-bottom: 3px; }
+    .s-row input[type="text"],
+    .s-row input[type="time"],
+    .s-row input[type="number"] {
+      width: 100%;
+      padding: 6px 9px;
+      background: #223044;
+      border: 1px solid #2d4460;
+      color: #d4e2f0;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .s-row input:focus { outline: none; border-color: #4a90d9; }
+    .s-row-2 { display: flex; gap: 8px; }
+    .s-row-2 > .s-sub { flex: 1; }
+    .s-sub label { display: block; font-size: 11px; color: #7aa0c0; margin-bottom: 3px; }
+    .s-sub input {
+      width: 100%;
+      padding: 6px 9px;
+      background: #223044;
+      border: 1px solid #2d4460;
+      color: #d4e2f0;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+    }
+    .s-sub input:focus { outline: none; border-color: #4a90d9; }
+
+    /* Teams list */
+    #teams-list { margin-bottom: 8px; }
+    .team-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+    .team-no {
+      width: 16px;
+      font-size: 10px;
+      color: #4a6a88;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .team-row input {
+      flex: 1;
+      padding: 5px 8px;
+      background: #223044;
+      border: 1px solid #2d4460;
+      color: #d4e2f0;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+    }
+    .team-row input:focus { outline: none; border-color: #4a90d9; }
+    .team-del {
+      width: 24px;
+      height: 24px;
+      background: #3a1818;
+      border: 1px solid #622020;
+      color: #dd7070;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .team-del:hover { background: #551f1f; }
+
+    /* Sidebar buttons */
+    .s-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: background 0.15s;
+      margin-bottom: 6px;
+    }
+    .s-btn-add { background: #1b3828; border: 1px solid #2a6040; color: #6dcc96; }
+    .s-btn-add:hover { background: #214a33; }
+    .s-btn-reset { background: #2a1f10; border: 1px solid #5a3a10; color: #e0a855; }
+    .s-btn-reset:hover { background: #3a2910; }
+    .s-btn-print { background: #1c3060; border: 1px solid #2d52a0; color: #88b4e8; margin-top: 4px; }
+    .s-btn-print:hover { background: #243c7a; }
+
+    /* ===== Preview Area ===== */
+    #preview {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #e4e8ee;
+    }
+
+    /* ===== Document ===== */
+    #document {
+      background: white;
+      width: 210mm;
+      margin: 0 auto;
+      padding: 8mm 13mm 10mm;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+      min-height: 297mm;
+    }
+
+    /* Document header */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 5px;
+      padding-bottom: 3px;
+    }
+    .doc-venue { font-size: 12.5pt; font-weight: bold; }
+    .doc-subtitle { font-size: 10pt; font-weight: bold; }
+    .doc-datetime { font-size: 9pt; white-space: nowrap; padding-left: 8px; }
+
+    /* Section label */
+    .sec-label {
+      font-size: 9.5pt;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+
+    /* ===== Round Robin Table ===== */
+    .rr-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 10px;
+      table-layout: fixed;
+      font-size: 8pt;
+    }
+    .rr-table th, .rr-table td {
+      border: 1px solid #333;
+      padding: 1px 2px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .rr-col-name { width: 70px; }
+    .rr-col-team { /* set by JS */ }
+    .rr-col-sum { width: 30px; }
+    .rr-col-rank { width: 26px; }
+    .rr-th-team { font-size: 7pt; overflow: hidden; word-break: break-all; }
+    .rr-td-name {
+      text-align: left;
+      font-weight: bold;
+      font-size: 8pt;
+      padding: 2px 4px;
+      word-break: break-all;
+    }
+    .rr-diag {
+      height: 22px;
+      position: relative;
+      overflow: hidden;
+      background: #f5f5f5;
+    }
+    .rr-diag::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom right,
+        transparent calc(50% - 0.6px),
+        #666 calc(50% - 0.6px),
+        #666 calc(50% + 0.6px),
+        transparent calc(50% + 0.6px)
+      );
+    }
+    .score-cell {
+      height: 22px;
+      padding: 0 !important;
+    }
+    .score-cell input {
+      width: 100%;
+      height: 100%;
+      border: none;
+      text-align: center;
+      background: transparent;
+      font-size: 8.5pt;
+      font-family: inherit;
+      padding: 0;
+    }
+    .score-cell input:focus {
+      outline: 2px solid #3a90e0;
+      outline-offset: -1px;
+      background: #e8f4ff;
+    }
+    /* Hide number spinners */
+    .score-cell input[type=number]::-webkit-inner-spin-button,
+    .score-cell input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .score-cell input[type=number] { -moz-appearance: textfield; }
+
+    /* ===== Bottom layout (timetable + rules) ===== */
+    .doc-bottom {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .tt-wrap { flex-shrink: 0; }
+    .rules-wrap { flex: 1; font-size: 8pt; line-height: 1.65; }
+
+    /* Timetable */
+    .tt-table {
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      white-space: nowrap;
+    }
+    .tt-table th, .tt-table td {
+      border: 1px solid #333;
+      padding: 2px 5px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .tt-table th { background: #f0f0f0; font-weight: bold; }
+    .tt-no { width: 28px; }
+    .tt-time { width: 40px; }
+    .tt-team { width: 68px; }
+    .tt-ko-label {
+      text-align: left;
+      font-size: 7.5pt;
+      line-height: 1.4;
+      padding: 2px 4px !important;
+      white-space: normal;
+    }
+
+    /* Footer notes */
+    .doc-footer {
+      margin-top: 8px;
+      font-size: 8pt;
+      line-height: 1.7;
+    }
+
+    /* ===== Print ===== */
+    @media print {
+      body { background: white; }
+      #sidebar { display: none !important; }
+      #preview {
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+      #app { height: auto !important; overflow: visible !important; }
+      #document {
+        width: 100% !important;
+        box-shadow: none !important;
+        padding: 5mm 8mm !important;
+        min-height: auto !important;
+      }
+      .score-cell input { outline: none !important; background: transparent !important; }
+    }
+    @page { size: A4 portrait; margin: 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== Sidebar ===== -->
+  <div id="sidebar">
+    <div id="sidebar-header">⚽ 対戦表エディター</div>
+    <div id="sidebar-body">
+
+      <div class="s-section">
+        <h3>イベント情報</h3>
+        <div class="s-row">
+          <label>会場名</label>
+          <input type="text" id="inp-venue">
+        </div>
+        <div class="s-row">
+          <label>サブタイトル</label>
+          <input type="text" id="inp-subtitle">
+        </div>
+        <div class="s-row">
+          <label>日付</label>
+          <input type="text" id="inp-date" placeholder="例：2026年2月21日（土）">
+        </div>
+        <div class="s-row">
+          <label>時間帯</label>
+          <input type="text" id="inp-timerange" placeholder="例：13:00～15:00">
+        </div>
+      </div>
+
+      <div class="s-section">
+        <h3>チーム設定</h3>
+        <div id="teams-list"></div>
+        <button class="s-btn s-btn-add" onclick="addTeam()">＋ チームを追加</button>
+      </div>
+
+      <div class="s-section">
+        <h3>スケジュール</h3>
+        <div class="s-row-2">
+          <div class="s-sub">
+            <label>開始時刻</label>
+            <input type="time" id="inp-start">
+          </div>
+          <div class="s-sub">
+            <label>間隔（分）</label>
+            <input type="number" id="inp-interval" min="1" max="180">
+          </div>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <h3>操作</h3>
+        <button class="s-btn s-btn-reset" onclick="resetScores()">↺ スコアをリセット</button>
+        <button class="s-btn s-btn-print" onclick="window.print()">🖨 印刷する</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== Preview ===== -->
+  <div id="preview">
+    <div id="document"></div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// State
+// ============================================================
+const DEFAULT_STATE = {
+  event: {
+    venue: '【みなとフットサルコート！みなと駅すぐ！】',
+    subtitle: 'エリア最大４４分プレー保証！ウルトラビギナー！',
+    date: '2026年2月21日（土）',
+    timeRange: '13:00～15:00'
+  },
+  teams: ['FC.アズール', 'レアル・ミサキ', 'チームひばり', 'FCナミカゼ'],
+  // scores["min-max"] = { a: number|null, b: number|null }
+  // 'a' = lower-index team's score, 'b' = higher-index team's score
+  scores: {},
+  schedule: {
+    firstMatchTime: '13:00',
+    matchInterval: 14
+  }
+};
+
+const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+// Load from localStorage
+(function loadSaved() {
+  try {
+    const saved = localStorage.getItem('matchTableState_v1');
+    if (!saved) return;
+    const d = JSON.parse(saved);
+    if (d.event) Object.assign(state.event, d.event);
+    if (Array.isArray(d.teams) && d.teams.length >= 2) state.teams = d.teams;
+    if (d.scores && typeof d.scores === 'object') state.scores = d.scores;
+    if (d.schedule) Object.assign(state.schedule, d.schedule);
+  } catch (e) { /* ignore */ }
+})();
+
+function saveState() {
+  try {
+    localStorage.setItem('matchTableState_v1', JSON.stringify(state));
+  } catch (e) { /* ignore */ }
+}
+
+// ============================================================
+// Schedule Generation (Circle Method)
+// ============================================================
+function generateSchedule(n) {
+  if (n < 2) return [];
+  const teams = Array.from({ length: n }, (_, i) => i);
+  if (n % 2 !== 0) teams.push(-1); // bye slot
+  const N = teams.length;
+  const fixed = teams[0];
+  const rot = teams.slice(1);
+  const matches = [];
+  let no = 1;
+
+  for (let r = 0; r < N - 1; r++) {
+    // Pair: fixed vs rot[0], rot[N-2] vs rot[1], rot[N-3] vs rot[2], ...
+    const pairs = [[fixed, rot[0]]];
+    for (let i = 1; i < N / 2; i++) {
+      pairs.push([rot[N - 1 - i], rot[i]]);
+    }
+    for (const [a, b] of pairs) {
+      if (a !== -1 && b !== -1) {
+        matches.push({ no: no++, teamA: a, teamB: b });
+      }
+    }
+    rot.push(rot.shift()); // rotate left
+  }
+  return matches;
+}
+
+// ============================================================
+// Score Helpers
+// ============================================================
+function sKey(i, j) {
+  return `${Math.min(i, j)}-${Math.max(i, j)}`;
+}
+
+function getScore(i, j) {
+  // Returns team i's score in match vs j, as string or ''
+  const s = state.scores[sKey(i, j)];
+  if (!s) return '';
+  const v = i < j ? s.a : s.b;
+  return (v !== null && v !== undefined) ? String(v) : '';
+}
+
+function setScore(i, j, raw) {
+  const key = sKey(i, j);
+  if (!state.scores[key]) state.scores[key] = { a: null, b: null };
+  const n = parseInt(raw, 10);
+  const v = (raw === '' || isNaN(n)) ? null : Math.max(0, n);
+  if (i < j) state.scores[key].a = v;
+  else       state.scores[key].b = v;
+}
+
+// ============================================================
+// Standings Calculation
+// ============================================================
+function calcStandings() {
+  const n = state.teams.length;
+  const st = Array.from({ length: n }, (_, i) => ({
+    idx: i, w: 0, d: 0, l: 0, scored: 0, conceded: 0, pts: 0
+  }));
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const s = state.scores[sKey(i, j)];
+      if (!s || s.a === null || s.b === null) continue;
+      const si = s.a, sj = s.b;
+      st[i].scored   += si; st[i].conceded += sj;
+      st[j].scored   += sj; st[j].conceded += si;
+      if      (si > sj) { st[i].w++; st[i].pts += 3; st[j].l++; }
+      else if (si < sj) { st[j].w++; st[j].pts += 3; st[i].l++; }
+      else              { st[i].d++; st[i].pts++;     st[j].d++; st[j].pts++; }
+    }
+  }
+
+  // Sort: pts desc → goal-diff desc → scored desc → original idx asc
+  st.sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    const da = a.scored - a.conceded, db = b.scored - b.conceded;
+    if (db !== da) return db - da;
+    if (b.scored !== a.scored) return b.scored - a.scored;
+    return a.idx - b.idx;
+  });
+  return st;
+}
+
+// ============================================================
+// Time Utility
+// ============================================================
+function addMins(t, m) {
+  const [h, min] = t.split(':').map(Number);
+  const total = h * 60 + min + m;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// ============================================================
+// HTML Escape
+// ============================================================
+function h(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// Render Document (full rebuild)
+// ============================================================
+function renderDocument() {
+  const n = state.teams.length;
+  const matches = generateSchedule(n);
+  const standings = calcStandings();
+  const rankOf = {};
+  standings.forEach((s, r) => { rankOf[s.idx] = r + 1; });
+
+  // Column width for match cells (narrower with more teams)
+  const matchColW = Math.max(28, Math.min(55, Math.floor(110 / n)));
+  const sumColW = n > 5 ? 26 : 30;
+
+  let out = '';
+
+  /* --- Header --- */
+  out += `<div class="doc-header">
+    <div>
+      <div class="doc-venue">${h(state.event.venue)}</div>
+      <div class="doc-subtitle">${h(state.event.subtitle)}</div>
+    </div>
+    <div class="doc-datetime">${h(state.event.date)}　${h(state.event.timeRange)}</div>
+  </div>`;
+
+  /* --- Round Robin Table --- */
+  out += `<div class="sec-label">■予選リーグ</div>`;
+  out += `<table class="rr-table">`;
+
+  // colgroup
+  out += `<colgroup><col class="rr-col-name">`;
+  for (let j = 0; j < n; j++) out += `<col style="width:${matchColW}px">`;
+  for (let k = 0; k < 4; k++) out += `<col style="width:${sumColW}px">`;
+  out += `<col style="width:26px"></colgroup>`;
+
+  // Header row
+  out += `<tr><th></th>`;
+  for (let j = 0; j < n; j++) {
+    out += `<th class="rr-th-team">${h(state.teams[j])}</th>`;
+  }
+  out += `<th>得点</th><th>失点</th><th>得失</th><th>勝点</th><th>順位</th></tr>`;
+
+  // Data rows
+  for (let i = 0; i < n; i++) {
+    const s = standings.find(x => x.idx === i);
+    const played = s ? s.w + s.d + s.l : 0;
+    const diff = s ? s.scored - s.conceded : 0;
+    const diffStr = diff >= 0 ? '+' + diff : String(diff);
+
+    out += `<tr><th class="rr-td-name">${h(state.teams[i])}</th>`;
+
+    for (let j = 0; j < n; j++) {
+      if (i === j) {
+        out += `<td class="rr-diag"></td>`;
+      } else {
+        const val = getScore(i, j);
+        out += `<td class="score-cell">
+          <input type="number" min="0" max="99"
+            value="${h(val)}"
+            data-i="${i}" data-j="${j}"
+            oninput="handleScore(this)">
+        </td>`;
+      }
+    }
+
+    // Standings columns (give IDs for partial update)
+    out += `<td id="st-sc-${i}">${played > 0 ? s.scored : ''}</td>`;
+    out += `<td id="st-co-${i}">${played > 0 ? s.conceded : ''}</td>`;
+    out += `<td id="st-df-${i}">${played > 0 ? diffStr : ''}</td>`;
+    out += `<td id="st-pt-${i}">${played > 0 ? s.pts : ''}</td>`;
+    out += `<td id="st-rk-${i}">${played > 0 ? rankOf[i] : ''}</td>`;
+    out += `</tr>`;
+  }
+  out += `</table>`;
+
+  /* --- Bottom: Timetable + Rules --- */
+  out += `<div class="doc-bottom">`;
+
+  // Timetable
+  out += `<div class="tt-wrap">
+    <div class="sec-label">■タイムテーブル</div>
+    <table class="tt-table">
+      <tr>
+        <th class="tt-no">NO</th>
+        <th class="tt-time">時間</th>
+        <th class="tt-team">キックオフ↓</th>
+        <th class="tt-team"><u>第1コート</u></th>
+      </tr>`;
+
+  matches.forEach((m, idx) => {
+    const t = addMins(state.schedule.firstMatchTime, idx * state.schedule.matchInterval);
+    out += `<tr>
+      <td>${m.no}</td>
+      <td>${t}</td>
+      <td>${h(state.teams[m.teamA])}</td>
+      <td>${h(state.teams[m.teamB])}</td>
+    </tr>`;
+  });
+
+  // Knockout rounds (4+ teams)
+  if (n >= 4) {
+    const last = matches.length;
+    const t1 = addMins(state.schedule.firstMatchTime, last * state.schedule.matchInterval);
+    const t2 = addMins(t1, state.schedule.matchInterval);
+    const t3 = addMins(t2, state.schedule.matchInterval);
+
+    out += `<tr>
+      <td>${last + 1}</td>
+      <td>${t1}</td>
+      <td class="tt-ko-label">アドバンテージ<br>3位</td>
+      <td class="tt-ko-label">3位決定戦<br>VS　4位</td>
+    </tr>
+    <tr>
+      <td>${last + 2}</td>
+      <td>${t2}</td>
+      <td class="tt-ko-label">アドバンテージ<br>1位</td>
+      <td class="tt-ko-label">決勝<br>VS　2位</td>
+    </tr>
+    <tr>
+      <td colspan="2">${t3}</td>
+      <td colspan="2">ピッチ完全撤収</td>
+    </tr>`;
+  }
+
+  out += `</table></div>`; // end tt-wrap
+
+  // Rules
+  out += `<div class="rules-wrap">
+    <div class="sec-label">■大会概要</div>
+    <div>○全選手すねあて着用</div>
+    <div>○11分1本勝負</div>
+    <div>○不戦敗のスコアは０-３扱いとします</div>
+    <div>○ルール：フットサル競技規則に準ずる。</div>
+    <div>　但し、5ファール、カードの累積、タイムアウト無し。</div>
+    <div>　対人へのスライディングタックルはファウルを取らせて頂く場合があります。</div>
+    <div>　ご不明点は審判にお尋ね下さい</div>
+    <div>○貴重品などは、各チームで管理して下さい。</div>
+    <div>　紛失した場合は、当施設及び主催者は一切の責任を負いかねます。</div>
+    <div>○ガラス製の眼鏡等【危険を伴う装飾品】の着用は全面禁止となります。</div>
+    <div>○大会で利用するコート以外へは立入禁止</div>
+    <div>○コート外でのボールの使用は禁止</div>
+    <div>　（コート防護ネットの外側、駐車場等では禁止）</div>
+    <div>○表彰：優勝⇒次回2,000円割引クーポン贈呈</div>
+    <div>※大会終了後、レフリースタッフから優勝チームへ</div>
+    <div>　次回2,000円割引クーポンを贈呈させていただきます。</div>
+    <div>※割引クーポンの使用方法につきましては、</div>
+    <div>割引クーポンの裏面をご確認ください。</div>
+  </div>`;
+
+  out += `</div>`; // end doc-bottom
+
+  // Footer notes
+  out += `<div class="doc-footer">
+    <div>○決勝と3位決定戦が同点の場合は、予選リーグの順位が優先されます。（PK戦は行いません）</div>
+    <div>○スムーズな試合進行、プレー時間を確保するために、試合前の整列は行いません。</div>
+    <div>○勝ち点が並んだ場合の順位の確定方法</div>
+    <div>　①得失点→②総得点→③直接対決の結果→④ジャンケン(またはコイントス）</div>
+  </div>`;
+
+  document.getElementById('document').innerHTML = out;
+}
+
+// ============================================================
+// Update Only Standings Cells (no DOM re-build, preserves focus)
+// ============================================================
+function updateStandings() {
+  const standings = calcStandings();
+  const n = state.teams.length;
+  const rankOf = {};
+  standings.forEach((s, r) => { rankOf[s.idx] = r + 1; });
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  for (let i = 0; i < n; i++) {
+    const s = standings.find(x => x.idx === i);
+    const played = s ? s.w + s.d + s.l : 0;
+    const diff = s ? s.scored - s.conceded : 0;
+    const diffStr = diff >= 0 ? '+' + diff : String(diff);
+
+    set(`st-sc-${i}`, played > 0 ? s.scored : '');
+    set(`st-co-${i}`, played > 0 ? s.conceded : '');
+    set(`st-df-${i}`, played > 0 ? diffStr : '');
+    set(`st-pt-${i}`, played > 0 ? s.pts : '');
+    set(`st-rk-${i}`, played > 0 ? rankOf[i] : '');
+  }
+}
+
+// ============================================================
+// Render Sidebar
+// ============================================================
+function renderSidebar() {
+  // Event inputs (only update if not focused)
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && el !== document.activeElement) el.value = val;
+  };
+  setVal('inp-venue',    state.event.venue);
+  setVal('inp-subtitle', state.event.subtitle);
+  setVal('inp-date',     state.event.date);
+  setVal('inp-timerange',state.event.timeRange);
+  setVal('inp-start',    state.schedule.firstMatchTime);
+  setVal('inp-interval', state.schedule.matchInterval);
+
+  // Teams list
+  const list = document.getElementById('teams-list');
+  const canDel = state.teams.length > 2;
+  list.innerHTML = state.teams.map((t, i) => `
+    <div class="team-row">
+      <span class="team-no">${i + 1}</span>
+      <input type="text" value="${h(t)}"
+        oninput="state.teams[${i}] = this.value; renderDocument(); saveState();">
+      <button class="team-del" onclick="removeTeam(${i})"
+        title="削除" ${canDel ? '' : 'disabled style="opacity:0.3"'}>×</button>
+    </div>
+  `).join('');
+}
+
+function render() {
+  renderDocument();
+  renderSidebar();
+}
+
+// ============================================================
+// Event Handlers
+// ============================================================
+function handleScore(input) {
+  const i = parseInt(input.dataset.i);
+  const j = parseInt(input.dataset.j);
+  setScore(i, j, input.value);
+  updateStandings(); // partial update – preserves focus
+  saveState();
+}
+
+function addTeam() {
+  state.teams.push('チーム' + (state.teams.length + 1));
+  state.scores = {};
+  saveState();
+  render();
+}
+
+function removeTeam(idx) {
+  if (state.teams.length <= 2) return;
+  state.teams.splice(idx, 1);
+  state.scores = {};
+  saveState();
+  render();
+}
+
+function resetScores() {
+  if (!confirm('スコアをすべてリセットしますか？')) return;
+  state.scores = {};
+  saveState();
+  renderDocument();
+}
+
+// ============================================================
+// Sidebar Input Listeners
+// ============================================================
+function bind(id, fn) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', fn);
+}
+
+function setupListeners() {
+  bind('inp-venue',    e => { state.event.venue    = e.target.value; renderDocument(); saveState(); });
+  bind('inp-subtitle', e => { state.event.subtitle = e.target.value; renderDocument(); saveState(); });
+  bind('inp-date',     e => { state.event.date      = e.target.value; renderDocument(); saveState(); });
+  bind('inp-timerange',e => { state.event.timeRange = e.target.value; renderDocument(); saveState(); });
+  bind('inp-start',    e => { state.schedule.firstMatchTime = e.target.value; renderDocument(); saveState(); });
+  bind('inp-interval', e => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v) && v > 0) { state.schedule.matchInterval = v; renderDocument(); saveState(); }
+  });
+}
+
+// ============================================================
+// Init
+// ============================================================
+render();
+setupListeners();
+</script>
+</body>
+</html>
