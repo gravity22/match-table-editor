@@ -4,6 +4,9 @@ import { generateSchedule, addMins } from '@/lib/schedule'
 import { calcStandings, sKey } from '@/lib/standings'
 import type { Tournament, Team, ScoresMap } from '@/types'
 
+const GAME_3RD_PLACE = 91
+const GAME_FINAL = 92
+
 interface Props {
   tournament: Tournament
   teams: Team[]
@@ -249,14 +252,14 @@ export default function TournamentDocument({
                         <div className="flex items-center gap-1">
                           <span className="flex-1">{sorted[place3]?.name}</span>
                           <input type="number" min={0} max={99}
-                            defaultValue={getScorePair(place3, place4).si}
-                            onChange={e => onScoreChange?.(place3, place4, e.target.value)}
+                            defaultValue={getScorePair(place3, place4, GAME_3RD_PLACE).si}
+                            onChange={e => onScoreChange?.(place3, place4, e.target.value, GAME_3RD_PLACE)}
                             className={inputCls}
                           />
                           <span className="text-gray-400 select-none shrink-0">-</span>
                           <input type="number" min={0} max={99}
-                            defaultValue={getScorePair(place3, place4).sj}
-                            onChange={e => onScoreChange?.(place4, place3, e.target.value)}
+                            defaultValue={getScorePair(place3, place4, GAME_3RD_PLACE).sj}
+                            onChange={e => onScoreChange?.(place4, place3, e.target.value, GAME_3RD_PLACE)}
                             className={inputCls}
                           />
                           <span className="flex-1 text-right">{sorted[place4]?.name}</span>
@@ -265,7 +268,7 @@ export default function TournamentDocument({
                         <div className="flex items-center">
                           <span className="flex-1">{sorted[place3]?.name}</span>
                           <span className="px-1.5 shrink-0 text-gray-500">
-                            {(() => { const { si, sj } = getScorePair(place3, place4); return si !== '' && sj !== '' ? `${si} - ${sj}` : 'vs' })()}
+                            {(() => { const { si, sj } = getScorePair(place3, place4, GAME_3RD_PLACE); return si !== '' && sj !== '' ? `${si} - ${sj}` : 'vs' })()}
                           </span>
                           <span className="flex-1 text-right">{sorted[place4]?.name}</span>
                         </div>
@@ -287,14 +290,14 @@ export default function TournamentDocument({
                         <div className="flex items-center gap-1">
                           <span className="flex-1">{sorted[place1]?.name}</span>
                           <input type="number" min={0} max={99}
-                            defaultValue={getScorePair(place1, place2).si}
-                            onChange={e => onScoreChange?.(place1, place2, e.target.value)}
+                            defaultValue={getScorePair(place1, place2, GAME_FINAL).si}
+                            onChange={e => onScoreChange?.(place1, place2, e.target.value, GAME_FINAL)}
                             className={inputCls}
                           />
                           <span className="text-gray-400 select-none shrink-0">-</span>
                           <input type="number" min={0} max={99}
-                            defaultValue={getScorePair(place1, place2).sj}
-                            onChange={e => onScoreChange?.(place2, place1, e.target.value)}
+                            defaultValue={getScorePair(place1, place2, GAME_FINAL).sj}
+                            onChange={e => onScoreChange?.(place2, place1, e.target.value, GAME_FINAL)}
                             className={inputCls}
                           />
                           <span className="flex-1 text-right">{sorted[place2]?.name}</span>
@@ -303,7 +306,7 @@ export default function TournamentDocument({
                         <div className="flex items-center">
                           <span className="flex-1">{sorted[place1]?.name}</span>
                           <span className="px-1.5 shrink-0 text-gray-500">
-                            {(() => { const { si, sj } = getScorePair(place1, place2); return si !== '' && sj !== '' ? `${si} - ${sj}` : 'vs' })()}
+                            {(() => { const { si, sj } = getScorePair(place1, place2, GAME_FINAL); return si !== '' && sj !== '' ? `${si} - ${sj}` : 'vs' })()}
                           </span>
                           <span className="flex-1 text-right">{sorted[place2]?.name}</span>
                         </div>
